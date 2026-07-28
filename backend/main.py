@@ -4,7 +4,7 @@ from openai import OpenAI
 app = FastAPI()
 
 app.frontend("/", directory="../frontend/dist")
-#todo: adding api key to api call is not secure, needs to find better ways to handle api key.
+#todo: adding api key to api call does not fuking make sense, needs to find better ways to handle api key. -> maybe .env? idk
 
 #todo : add error handling for the requests.post calls and validate the inputs (url, upstreamApiKey, modusignApiKey, file) before making the API calls.
 #todo : add url support for instead of just file upload, so that the user can provide a url to the document instead of uploading it.
