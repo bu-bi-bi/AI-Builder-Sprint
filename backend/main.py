@@ -1,10 +1,13 @@
 import requests
 from fastapi import FastAPI, File, Form, UploadFile
-
+from openai import OpenAI
 app = FastAPI()
 
-app.frontend("/", directory="../dist")
+app.frontend("/", directory="../frontend/dist")
+#todo: adding api key to api call is not secure, needs to find better ways to handle api key.
 
+#todo : add error handling for the requests.post calls and validate the inputs (url, upstreamApiKey, modusignApiKey, file) before making the API calls.
+#todo : add url support for instead of just file upload, so that the user can provide a url to the document instead of uploading it.
 @app.post("/contractsParsing")
 async def contracts_parsing(
     url: str | None = Form(None),
@@ -13,7 +16,7 @@ async def contracts_parsing(
     file: UploadFile | None = File(None),
 ):
     contents = await file.read()
-
+    
 
     ApiURL = "https://api.upstage.ai/v1/document-digitization"
     headers = {"Authorization": f"Bearer {upstreamApiKey}"}
@@ -24,7 +27,8 @@ async def contracts_parsing(
     response = requests.post(ApiURL, headers=headers, files=files, data=data)
     return response.json()
 
-
+#todo : add error handling for the requests.post calls and validate the inputs (url, upstreamApiKey, modusignApiKey, file) before making the API calls.
+#todo : add url support for instead of just file upload, so that the user can provide a url to the document instead of uploading it.
 @app.post("/contractsParsingOCR")
 async def contracts_parsing_ocr(
     url: str | None = Form(None),
@@ -42,3 +46,29 @@ async def contracts_parsing_ocr(
     data = {"model": "ocr"}
     response = requests.post(url, headers=headers, files=files, data=data)
     return response.json()
+
+
+#test feature for simple AI response using solar-pro2 model, this is a test feature and will be removed in future.
+@app.post("/simpleAIResponse")
+async def simple_ai_response(
+    upstreamApiKey: str | None = Form(None),
+    model: str | None = Form("solar-pro2"),
+    prompt: str | None = Form(None),
+    role: str | None = Form("user")
+):
+    client = OpenAI( 
+        api_key=upstreamApiKey,
+        base_url="https://api.upstage.ai/v1",
+    )
+    stream = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": role,
+                "content": prompt
+            }  
+        ],
+        stream=False,
+    )
+    return {"content": stream.choices[0].message.content}
+
