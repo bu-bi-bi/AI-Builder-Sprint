@@ -4,6 +4,8 @@ import { uploadContract } from "../api/contractApi";
 function UploadForm() {
   const [url, setUrl] = useState("");
   const [file, setFile] = useState(null);
+  const [upstreamApiKey, setUpstreamApiKey] = useState("");
+  const [modusignApiKey, setModusignApiKey] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,6 +18,14 @@ function UploadForm() {
 
     if (file) {
       formData.append("file", file);
+    }
+
+    if (upstreamApiKey) {
+      formData.append("upstreamApiKey", upstreamApiKey);
+    }
+
+    if (modusignApiKey) {
+      formData.append("modusignApiKey", modusignApiKey);
     }
 
     try {
@@ -37,6 +47,28 @@ function UploadForm() {
           placeholder="https://..."
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label>Upstream API Key</label>
+
+        <input
+          type="password"
+          placeholder="Enter upstream API key"
+          value={upstreamApiKey}
+          onChange={(e) => setUpstreamApiKey(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label>Modusign API Key</label>
+
+        <input
+          type="password"
+          placeholder="Enter modusign API key"
+          value={modusignApiKey}
+          onChange={(e) => setModusignApiKey(e.target.value)}
         />
       </div>
 
