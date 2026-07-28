@@ -23,3 +23,22 @@ async def contracts_parsing(
     data = {"ocr": "force", "base64_encoding": "['table']", "model": "document-parse"}
     response = requests.post(ApiURL, headers=headers, files=files, data=data)
     return response.json()
+
+
+@app.post("/contractsParsingOCR")
+async def contracts_parsing_ocr(
+    url: str | None = Form(None),
+    upstreamApiKey: str | None = Form(None),
+    modusignApiKey: str | None = Form(None),
+    file: UploadFile | None = File(None),
+):
+    contents = await file.read()
+
+    ApiURL = "https://api.upstage.ai/v1/document-digitization"
+    headers = {"Authorization": f"Bearer {upstreamApiKey}"}
+    files = {
+        "document": (file.filename, contents, file.content_type)
+    }
+    data = {"model": "ocr"}
+    response = requests.post(url, headers=headers, files=files, data=data)
+    return response.json()
