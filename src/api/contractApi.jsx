@@ -1,8 +1,6 @@
 export async function uploadContract(formData) {
 
-
-
-  const response = await fetch("http://localhost:8000/contractsAnalyze", {
+  const response = await fetch("http://127.0.0.1:8000/contractsParsing", {
     method: "POST",
     body: formData,
   });
