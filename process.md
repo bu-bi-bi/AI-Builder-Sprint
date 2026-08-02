@@ -22,9 +22,9 @@
 - FastAPI 앱이 `frontend/dist`를 정적 파일로 서빙한다.
 - `/api/health`가 있다.
 - `/contractsParsing`, `/contractsParsingOCR`는 현재 제품 방향에서 제외된 legacy 엔드포인트로 410을 반환한다.
-- `/api/analyze-reservation`은 현재 mock 응답을 반환한다.
+- `/api/analyze-reservation`은 Upstage Solar LLM을 호출해 예약 조건 분석 JSON을 반환한다.
 - `/simpleAIResponse`는 Upstage Solar LLM을 단순 호출하는 테스트 엔드포인트다.
-- JSON 스키마 검증, 파싱 실패 처리, 빈 카드 처리, level 검증이 없다.
+- JSON 스키마 강제 출력, 파싱 실패 처리, 빈 카드 처리, level 검증이 있다.
 - 모두싸인 연동은 아직 구현되어 있지 않다.
 
 ### 문서/기획 상태
@@ -136,7 +136,9 @@
 
 ### Phase 4. 백엔드 분석 API 만들기
 
-- 새 엔드포인트 예시: `POST /analyze-reservation`
+상태: 완료
+
+- 새 엔드포인트: `POST /api/analyze-reservation`
 - 입력: `url`, `pageText`, `siteName` 또는 `sourceMeta`
 - 출력: AI 카드 JSON 스키마
 - Upstage Solar LLM 프롬프트를 예약 조건 분석 목적에 맞게 작성한다.
@@ -148,6 +150,16 @@
 
 - 온라인 예약 텍스트를 보내면 AI 카드 JSON이 반환된다.
 - 잘못된 응답과 네트워크 실패에 대한 처리가 있다.
+
+수행 기록:
+
+- Upstage API 문서의 OpenAI 호환 방식에 맞춰 `https://api.upstage.ai/v1` base URL과 `solar-pro3` 모델 별칭을 사용하도록 구현했다.
+- `response_format`의 `json_schema`와 `strict: true`를 사용해 `summary`, `cards`, `title`, `level`, `plain`, `question`, `source` 구조만 반환되게 했다.
+- 모든 필드를 필수로 두고 추가 필드를 막는 strict JSON Schema를 작성했다.
+- `UPSTAGE_API_KEY`를 서버 환경변수 또는 루트 `.env`에서 읽도록 바꿨다.
+- LLM JSON 파싱 실패, 스키마 불일치, 빈 카드, 카드 6개 초과, Upstage 호출 실패를 명확한 API 에러로 처리한다.
+- `/contractsParsing`, `/contractsParsingOCR`는 410 legacy 응답으로 분리했다.
+- 실제 Upstage 키가 없는 환경에서는 503으로 실패하는 것을 확인했다.
 
 ### Phase 5. 크롬 확장 프로그램 기본 구조 생성
 
@@ -252,7 +264,7 @@ extension/
 1. `extension/` 디렉터리와 Manifest V3 Side Panel 뼈대를 만든다.
 2. content script로 현재 페이지 텍스트 추출을 구현한다.
 3. Side Panel에서 mock 분석 결과를 표시한다.
-4. 백엔드에 `/api/analyze-reservation`을 실제 Upstage Solar LLM 응답으로 연결한다.
+4. Side Panel에서 `/api/analyze-reservation` 호출 흐름을 연결한다.
 5. 실제 예약 업체 1곳 어댑터를 붙인다.
 6. 모두싸인 연동은 AI 분석 흐름 완성 후 착수한다.
 
