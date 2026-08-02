@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Busan Reservation Guard",
+  "description": "부산 여행 예약 조건을 현재 페이지에서 확인합니다.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "예약 조건 확인"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "permissions": ["activeTab", "scripting", "sidePanel", "tabs"],
+  "host_permissions": ["<all_urls>", "http://127.0.0.1:8000/*"]
+}

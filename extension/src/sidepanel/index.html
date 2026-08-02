@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>예약 조건 확인</title>
+    <link rel="stylesheet" href="./sidepanel.css" />
+  </head>
+  <body>
+    <main class="panel-shell">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Busan Reservation Guard</p>
+          <h1>예약 조건 확인</h1>
+        </div>
+        <span id="statusBadge" class="status-badge">대기</span>
+      </header>
+
+      <section class="action-row">
+        <button id="extractButton" class="primary-button" type="button">
+          현재 페이지 가져오기
+        </button>
+      </section>
+
+      <section id="messageBox" class="message-box" hidden></section>
+
+      <section id="metaPanel" class="meta-panel" hidden>
+        <dl>
+          <div>
+            <dt>출처</dt>
+            <dd id="siteName">-</dd>
+          </div>
+          <div>
+            <dt>어댑터</dt>
+            <dd id="adapterName">-</dd>
+          </div>
+          <div>
+            <dt>텍스트</dt>
+            <dd id="textLength">-</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="source-panel">
+        <div class="source-header">
+          <h2>추출 원문</h2>
+          <button id="copyButton" class="ghost-button" type="button" disabled>
+            복사
+          </button>
+        </div>
+        <pre id="sourceText" class="source-text">아직 가져온 예약 조건이 없습니다.</pre>
+      </section>
+    </main>
+
+    <script src="./sidepanel.js"></script>
+  </body>
+</html>
