@@ -3,53 +3,81 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>예약 조건 확인</title>
+    <title>부비비</title>
     <link rel="stylesheet" href="./sidepanel.css" />
   </head>
   <body>
     <main class="panel-shell">
-      <header class="panel-header">
-        <div>
-          <p class="eyebrow">Busan Reservation Guard</p>
-          <h1>예약 조건 확인</h1>
+      <section id="idlePanel" class="idle-panel">
+        <div class="brand-block">
+          <p class="brand-kicker">예약 약관 AI 체크</p>
+          <h1 class="brand-title">부비비</h1>
+          <p class="brand-guide">
+            예약 약관 페이지로 이동한 뒤 분석하기 버튼을 눌러주세요.
+          </p>
         </div>
-        <span id="statusBadge" class="status-badge">대기</span>
-      </header>
+        <button id="analyzePageButton" class="primary-button" type="button">
+          분석하기
+        </button>
+      </section>
 
-      <section class="action-row">
-        <button id="extractButton" class="primary-button" type="button">
-          현재 페이지 가져오기
+      <section id="loadingPanel" class="loading-panel" hidden>
+        <div class="loading-orbit" aria-hidden="true"></div>
+        <p id="loadingTitle" class="loading-title">분석 준비 중</p>
+        <p id="loadingStep" class="loading-step">현재 페이지를 확인하고 있습니다.</p>
+        <p class="loading-help">
+          10에서 20분 정도의 시간이 소요될 수 있습니다. 만약 문제가 발생한 것 같은 경우
+          <button id="restartAnalysisButton" class="text-button" type="button">여기</button>를 눌러
+          처음부터 시도할 수 있습니다.
+        </p>
+      </section>
+
+      <section id="failurePanel" class="failure-panel" hidden>
+        <p id="failureTitle" class="failure-title">분석하지 못했습니다</p>
+        <p id="failureDetail" class="failure-detail">
+          현재 페이지에서 예약 조건 원문을 가져오지 못했습니다.
+        </p>
+        <button id="retryAnalysisButton" class="secondary-button" type="button">
+          다시 시도
         </button>
       </section>
 
       <section id="messageBox" class="message-box" hidden></section>
 
-      <section id="metaPanel" class="meta-panel" hidden>
-        <dl>
-          <div>
-            <dt>출처</dt>
-            <dd id="siteName">-</dd>
-          </div>
-          <div>
-            <dt>어댑터</dt>
-            <dd id="adapterName">-</dd>
-          </div>
-          <div>
-            <dt>텍스트</dt>
-            <dd id="textLength">-</dd>
-          </div>
-        </dl>
+      <section id="analysisPanel" class="analysis-panel" hidden>
+        <div class="analysis-header">
+          <p id="checkedCount" class="checked-count">0개 확인</p>
+          <button id="openWebButton" class="ghost-button" type="button" disabled>
+            웹에서 보기
+          </button>
+        </div>
+        <p id="analysisSummary" class="analysis-summary"></p>
+        <div class="card-nav">
+          <button id="prevCardButton" class="icon-button" type="button" aria-label="이전 카드">
+            ‹
+          </button>
+          <span id="cardPosition" class="card-position">0 / 0</span>
+          <button id="nextCardButton" class="icon-button" type="button" aria-label="다음 카드">
+            ›
+          </button>
+        </div>
+        <div id="cardStack" class="card-stack" aria-live="polite"></div>
       </section>
 
-      <section class="source-panel">
-        <div class="source-header">
-          <h2>추출 원문</h2>
+      <details id="sourcePanel" class="source-panel">
+        <summary class="source-header">
+          <span>원문</span>
           <button id="copyButton" class="ghost-button" type="button" disabled>
             복사
           </button>
-        </div>
-        <pre id="sourceText" class="source-text">아직 가져온 예약 조건이 없습니다.</pre>
-      </section>
+        </summary>
+        <pre id="sourceText" class="source-text"></pre>
+      </details>
+
+      <p id="aiDisclaimer" class="ai-disclaimer" hidden>
+        AI를 통해 생성된 카드들입니다. 위 내용은 AI를 통해 불리할 수 있는 내용들을 요약한 것이며
+        AI가 찾지 못한 정보 또한 존재할 수 있습니다.
+      </p>
     </main>
 
     <script src="./sidepanel.js"></script>

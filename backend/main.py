@@ -1,5 +1,6 @@
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Literal
 
@@ -17,7 +18,8 @@ FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 UPSTAGE_BASE_URL = "https://api.upstage.ai/v1"
 UPSTAGE_MODEL = "solar-pro3"
 DIRECT_ANALYSIS_CHAR_LIMIT = 50_000
-CHUNK_CHAR_LIMIT = 30_000
+CHUNK_CHAR_LIMIT = 45_000
+CHUNK_ANALYSIS_CONCURRENCY = 3
 MAX_TOTAL_INPUT_CHARS = 300_000
 
 
@@ -91,6 +93,7 @@ async def health_check():
         "upstageConfigured": bool(os.getenv("UPSTAGE_API_KEY")),
         "directAnalysisCharLimit": DIRECT_ANALYSIS_CHAR_LIMIT,
         "chunkCharLimit": CHUNK_CHAR_LIMIT,
+        "chunkAnalysisConcurrency": CHUNK_ANALYSIS_CONCURRENCY,
         "maxTotalInputChars": MAX_TOTAL_INPUT_CHARS,
     }
 
@@ -458,8 +461,8 @@ def analyze_chunked_reservation(
     if not chunks:
         raise HTTPException(status_code=400, detail="pageText가 필요합니다.")
 
-    chunk_results = [
-        request_structured_analysis(
+    def analyze_single_chunk(index: int, chunk: str) -> tuple[int, ChunkReservationAnalysis]:
+        analysis = request_structured_analysis(
             client=client,
             messages=build_chunk_analysis_messages(
                 request=request,
@@ -470,9 +473,23 @@ def analyze_chunked_reservation(
             max_tokens=1400,
             allow_empty_cards=True,
         )
-        for index, chunk in enumerate(chunks)
-    ]
-    chunk_results = [result for result in chunk_results if result.cards]
+
+        return index, analysis
+
+    indexed_results: list[tuple[int, ChunkReservationAnalysis]] = []
+    max_workers = min(CHUNK_ANALYSIS_CONCURRENCY, len(chunks))
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(analyze_single_chunk, index, chunk)
+            for index, chunk in enumerate(chunks)
+        ]
+
+        for future in as_completed(futures):
+            indexed_results.append(future.result())
+
+    indexed_results.sort(key=lambda item: item[0])
+    chunk_results = [result for _, result in indexed_results if result.cards]
 
     if not chunk_results:
         raise HTTPException(
@@ -488,7 +505,7 @@ def analyze_chunked_reservation(
 
 
 @app.post("/api/analyze-reservation")
-async def analyze_reservation(payload: AnalyzeReservationRequest):
+def analyze_reservation(payload: AnalyzeReservationRequest):
     request = payload.model_copy(update={"pageText": payload.pageText.strip()})
 
     if not request.pageText:
