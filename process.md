@@ -9,7 +9,7 @@
 - 위치: `frontend/`
 - 기술: React + Vite
 - 현재 화면은 `Home` 하나가 사실상 전부다.
-- 현재 문안은 "해양 레저 계약 분석 서비스"로 되어 있어 새 정체성인 "부산 여행객 온라인 예약 조건 분석"과 맞지 않는다.
+- 첫 화면 문안은 "부산 여행 예약 조건 분석 서비스"로 정리되었다.
 - `UploadForm`은 URL, 파일 업로드, Upstage API Key, Modusign API Key 입력을 받는다.
 - 파일 업로드/OCR 중심 구조가 남아 있어 `AGENT.md`의 "사진/촬영/OCR 제외" 원칙과 충돌한다.
 - `Result` 페이지는 빈 placeholder 상태다.
@@ -30,7 +30,7 @@
 
 ### 문서/기획 상태
 
-- `AGENT.md`는 새 정체성을 담고 있지만, 일부 표현은 아직 `popup` 또는 "웹 앱으로 전달" 중심으로 남아 있을 수 있다.
+- `AGENT.md`는 Chrome Side Panel 중심의 새 정체성으로 정리되었다.
 - 실제 개발 방향은 사용자의 최근 결정에 따라 Chrome Side Panel 우선으로 잡는다.
 - 모두싸인 연동은 유지하되, AI 요약/주의사항 정리 기능 이후 단계로 둔다.
 
@@ -71,6 +71,8 @@
 
 ### Phase 1. 기획/문서 정렬
 
+상태: 완료
+
 - `AGENT.md`에서 남아 있는 `popup` 중심 표현을 Side Panel 중심으로 정리한다.
 - README류 문서가 이전 기획을 강하게 가리키면, 새 정체성 기준으로 보조 설명을 추가한다.
 - 프로젝트 이름과 화면 문안을 "부산 여행객 온라인 예약 조건 분석" 방향으로 통일한다.
@@ -79,6 +81,13 @@
 
 - 사진, 촬영, OCR, 해양 레저 전용 표현이 핵심 플로우에서 제거된다.
 - 크롬 확장 기본 UI가 Side Panel임이 문서에 명확하다.
+
+수행 기록:
+
+- `AGENT.md`의 핵심 데모, 제품 구성, 개발 우선순위, 기술 스택, 데이터 흐름, 크롬 확장 구현 규칙을 Chrome Side Panel 기준으로 정리했다.
+- `README.md`에 현재 프로젝트 방향을 추가했다.
+- `README2.md` 상단에 초기 기획 문서이며 최신 구현 기준은 `AGENT.md`라는 안내를 추가했다.
+- `frontend/src/pages/Home.jsx`의 첫 화면 문안을 해양 레저 계약 분석에서 부산 여행 예약 조건 분석으로 바꿨다.
 
 ### Phase 2. 공통 분석 스키마 만들기
 
@@ -166,6 +175,8 @@ extension/
 - 실제 예약 업체 페이지에서 분석에 필요한 텍스트가 안정적으로 추출된다.
 - 업체별 로직과 범용 로직이 분리되어 있다.
 
+### Phase 6-1. phase 6을 기반으로 general 어댑터 구현 OR 다른 사이트 어댑터 구현=-
+
 ### Phase 7. Side Panel 분석 UI 구현
 
 - Side Panel에서 "이 예약 조건 분석하기" 버튼을 제공한다.
@@ -220,15 +231,14 @@ extension/
 
 ## 4. 바로 다음 작업 순서
 
-1. `AGENT.md`를 Side Panel 기준으로 최종 정리한다.
+1. 공통 mock 분석 JSON과 카드 UI를 만든다.
 2. 웹 앱에서 기존 파일 업로드/OCR UI를 걷어내고 샘플 예약 분석 화면을 만든다.
-3. 공통 mock 분석 JSON과 카드 UI를 만든다.
-4. `extension/` 디렉터리와 Manifest V3 Side Panel 뼈대를 만든다.
-5. content script로 현재 페이지 텍스트 추출을 구현한다.
-6. Side Panel에서 mock 분석 결과를 표시한다.
-7. 백엔드에 `/analyze-reservation`을 만들고 Upstage Solar LLM을 연결한다.
-8. 실제 예약 업체 1곳 어댑터를 붙인다.
-9. 모두싸인 연동은 AI 분석 흐름 완성 후 착수한다.
+3. `extension/` 디렉터리와 Manifest V3 Side Panel 뼈대를 만든다.
+4. content script로 현재 페이지 텍스트 추출을 구현한다.
+5. Side Panel에서 mock 분석 결과를 표시한다.
+6. 백엔드에 `/analyze-reservation`을 만들고 Upstage Solar LLM을 연결한다.
+7. 실제 예약 업체 1곳 어댑터를 붙인다.
+8. 모두싸인 연동은 AI 분석 흐름 완성 후 착수한다.
 
 ## 5. 리스크와 대응
 

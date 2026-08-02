@@ -1,0 +1,257 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f6f7f9;
+  color: #17202a;
+  font-family:
+    Inter,
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+main {
+  width: min(100% - 32px, 920px);
+  margin: 0 auto;
+  padding: 40px 0 64px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 12px;
+  font-size: 34px;
+  line-height: 1.18;
+}
+
+h2 {
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+h3 {
+  margin: 8px 0 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+form {
+  display: grid;
+  gap: 14px;
+  margin: 28px 0;
+  padding: 20px;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  color: #445160;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #c9d2dc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #17202a;
+}
+
+button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 6px;
+  background: #155e75;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+button:hover {
+  background: #0e4f64;
+}
+
+.analysis-result {
+  margin-top: 32px;
+}
+
+.analysis-summary {
+  padding: 22px;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.eyebrow {
+  margin-bottom: 8px;
+  color: #155e75;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.analysis-warning {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e7bd64;
+  border-radius: 8px;
+  background: #fff8e7;
+}
+
+.analysis-card-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.contract-card {
+  padding: 18px;
+  border: 1px solid #d9e0e8;
+  border-left-width: 5px;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.contract-card-high {
+  border-left-color: #c2410c;
+}
+
+.contract-card-medium {
+  border-left-color: #ca8a04;
+}
+
+.contract-card-low {
+  border-left-color: #15803d;
+}
+
+.contract-card-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.level-badge-high {
+  background: #fff1eb;
+  color: #9a3412;
+}
+
+.level-badge-medium {
+  background: #fff8db;
+  color: #854d0e;
+}
+
+.level-badge-low {
+  background: #ebf8ef;
+  color: #166534;
+}
+
+.check-control {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 7px;
+  align-items: center;
+  margin: 0;
+  color: #17202a;
+}
+
+.check-control input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.card-description {
+  margin: 12px 0 8px;
+  color: #667383;
+  font-size: 14px;
+}
+
+.question-box {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eef6f8;
+}
+
+.question-box p {
+  margin: 6px 0 0;
+}
+
+.source-toggle {
+  margin-top: 14px;
+  min-height: 36px;
+  padding: 0 12px;
+  background: #263340;
+}
+
+.source-toggle:hover {
+  background: #17202a;
+}
+
+.source-text {
+  margin: 12px 0 0;
+  padding: 12px;
+  border-left: 3px solid #94a3b8;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.analysis-confirmation {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #17202a;
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  main {
+    width: min(100% - 24px, 920px);
+    padding-top: 28px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  .contract-card-header,
+  .analysis-confirmation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
