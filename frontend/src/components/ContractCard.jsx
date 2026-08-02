@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { LEVEL_META } from "../shared/analysisSchema";
 
 function ContractCard({ card, checked = false, onCheckChange }) {

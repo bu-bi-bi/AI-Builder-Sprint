@@ -1,4 +1,8 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { EffectCards } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/effect-cards";
 import { normalizeAnalysisResult } from "../shared/analysisSchema";
 import ContractCard from "./ContractCard";
 
@@ -8,6 +12,7 @@ function AnalysisResult({ analysis }) {
     [analysis],
   );
   const [checkedCards, setCheckedCards] = useState({});
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
 
   const checkedCount = result.cards.filter((card) => checkedCards[card.id]).length;
   const allChecked = result.cards.length > 0 && checkedCount === result.cards.length;
@@ -40,15 +45,37 @@ function AnalysisResult({ analysis }) {
         </div>
       )}
 
-      <div className="analysis-card-list">
-        {result.cards.map((card) => (
-          <ContractCard
-            key={card.id}
-            card={card}
-            checked={Boolean(checkedCards[card.id])}
-            onCheckChange={(checked) => handleCheckChange(card.id, checked)}
-          />
-        ))}
+      <div className="analysis-card-deck" aria-label="예약 주의사항 카드">
+        {activeCardIndex === 0 && result.cards.length > 1 && (
+          <div className="swipe-hint" aria-hidden="true">
+            <span className="swipe-arrow">←</span>
+            <span>왼쪽으로 밀어 다음 카드 보기</span>
+          </div>
+        )}
+
+        <Swiper
+          effect="cards"
+          grabCursor
+          modules={[EffectCards]}
+          className="reservation-card-swiper"
+          onSlideChange={(swiper) => setActiveCardIndex(swiper.activeIndex)}
+          cardsEffect={{
+            perSlideOffset: 12,
+            perSlideRotate: 3,
+            rotate: true,
+            slideShadows: false,
+          }}
+        >
+          {result.cards.map((card) => (
+            <SwiperSlide key={card.id}>
+              <ContractCard
+                card={card}
+                checked={Boolean(checkedCards[card.id])}
+                onCheckChange={(checked) => handleCheckChange(card.id, checked)}
+              />
+            </SwiperSlide>
+          ))}
+        </Swiper>
       </div>
 
       <div className="analysis-confirmation">

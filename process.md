@@ -8,23 +8,22 @@
 
 - 위치: `frontend/`
 - 기술: React + Vite
-- 현재 화면은 `Home` 하나가 사실상 전부다.
+- 현재 화면은 `Home` 중심이며, 샘플 예약 원문과 Swiper 카드 분석 결과를 바로 보여준다.
 - 첫 화면 문안은 "부산 여행 예약 조건 분석 서비스"로 정리되었다.
-- `UploadForm`은 URL, 파일 업로드, Upstage API Key, Modusign API Key 입력을 받는다.
-- 파일 업로드/OCR 중심 구조가 남아 있어 `AGENT.md`의 "사진/촬영/OCR 제외" 원칙과 충돌한다.
-- `Result` 페이지는 빈 placeholder 상태다.
-- `ContractCard`는 카드 구조의 흔적만 있고 실제 리스트, 중요도 UI, 원문 접기, 확인 체크 흐름이 없다.
+- 파일 업로드/OCR 중심 `UploadForm`은 제거되었다.
+- `Result` 페이지도 샘플 예약 원문과 분석 결과를 렌더링한다.
+- 공통 분석 스키마, mock 분석 결과, Swiper cards UI가 추가되었다.
 - Tailwind CSS는 목표 스택에 있지만 현재 `package.json`에는 설치되어 있지 않다.
 - 크롬 확장 프로그램 관련 코드가 없다.
 
 ### 백엔드
 
 - 위치: `backend/main.py`
-- FastAPI 앱이 있다.
-- `/contractsParsing`, `/contractsParsingOCR`는 파일 업로드를 받아 Upstage document digitization을 호출하는 초기 기획 구조다.
+- FastAPI 앱이 `frontend/dist`를 정적 파일로 서빙한다.
+- `/api/health`가 있다.
+- `/contractsParsing`, `/contractsParsingOCR`는 현재 제품 방향에서 제외된 legacy 엔드포인트로 410을 반환한다.
+- `/api/analyze-reservation`은 현재 mock 응답을 반환한다.
 - `/simpleAIResponse`는 Upstage Solar LLM을 단순 호출하는 테스트 엔드포인트다.
-- API Key를 클라이언트에서 직접 FormData로 받는 구조가 남아 있어 민감정보 처리 원칙과 맞지 않는다.
-- 온라인 예약 페이지 텍스트를 받아 AI 카드 JSON으로 변환하는 정식 엔드포인트가 없다.
 - JSON 스키마 검증, 파싱 실패 처리, 빈 카드 처리, level 검증이 없다.
 - 모두싸인 연동은 아직 구현되어 있지 않다.
 
@@ -91,6 +90,8 @@
 
 ### Phase 2. 공통 분석 스키마 만들기
 
+상태: 완료
+
 - `summary`, `cards`, `title`, `level`, `plain`, `question`, `source` 구조를 공통 타입으로 정의한다.
 - `high | medium | low` 외의 level 값은 fallback 처리한다.
 - 카드가 비어 있거나 source가 없을 때의 에러/경고 상태를 정한다.
@@ -101,7 +102,16 @@
 - 웹 앱과 확장 프로그램이 같은 분석 결과 JSON을 사용할 수 있다.
 - 실제 AI API 없이도 데모 화면이 동작한다.
 
+수행 기록:
+
+- 분석 결과 스키마, level 정규화, fallback 처리 로직을 추가했다.
+- 부산 숙소 예약 조건 mock 원문과 mock 분석 결과를 추가했다.
+- `AnalysisResult`와 `ContractCard`를 실제 카드 UI로 재구성했다.
+- Swiper `EffectCards`를 적용해 분석 카드를 카드 스택으로 보여준다.
+
 ### Phase 3. 웹 앱 재구성
+
+상태: 완료
 
 - `Home` 문안을 새 정체성에 맞게 바꾼다.
 - 파일 업로드 중심 `UploadForm`을 제거하거나 샘플 분석/텍스트 입력 중심으로 바꾼다.
@@ -115,6 +125,14 @@
 
 - 웹 앱에서 샘플 예약 데이터를 분석 결과처럼 볼 수 있다.
 - 사용자는 카드별로 원문을 확인하고 체크할 수 있다.
+
+수행 기록:
+
+- `UploadForm`과 기존 `/contractsParsing` 호출용 `contractApi`를 제거했다.
+- `Home`을 샘플 예약 원문과 분석 카드 중심 화면으로 재구성했다.
+- `ReservationSourcePanel`을 추가해 원문을 화면 왼쪽에서 확인할 수 있게 했다.
+- `Result` placeholder를 실제 샘플 분석 결과 화면으로 교체했다.
+- Tailwind CSS는 이번 단계에서 도입하지 않고, 기존 plain CSS를 확장했다.
 
 ### Phase 4. 백엔드 분석 API 만들기
 
@@ -231,14 +249,12 @@ extension/
 
 ## 4. 바로 다음 작업 순서
 
-1. 공통 mock 분석 JSON과 카드 UI를 만든다.
-2. 웹 앱에서 기존 파일 업로드/OCR UI를 걷어내고 샘플 예약 분석 화면을 만든다.
-3. `extension/` 디렉터리와 Manifest V3 Side Panel 뼈대를 만든다.
-4. content script로 현재 페이지 텍스트 추출을 구현한다.
-5. Side Panel에서 mock 분석 결과를 표시한다.
-6. 백엔드에 `/analyze-reservation`을 만들고 Upstage Solar LLM을 연결한다.
-7. 실제 예약 업체 1곳 어댑터를 붙인다.
-8. 모두싸인 연동은 AI 분석 흐름 완성 후 착수한다.
+1. `extension/` 디렉터리와 Manifest V3 Side Panel 뼈대를 만든다.
+2. content script로 현재 페이지 텍스트 추출을 구현한다.
+3. Side Panel에서 mock 분석 결과를 표시한다.
+4. 백엔드에 `/api/analyze-reservation`을 실제 Upstage Solar LLM 응답으로 연결한다.
+5. 실제 예약 업체 1곳 어댑터를 붙인다.
+6. 모두싸인 연동은 AI 분석 흐름 완성 후 착수한다.
 
 ## 5. 리스크와 대응
 

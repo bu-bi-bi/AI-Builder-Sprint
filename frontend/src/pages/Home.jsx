@@ -1,20 +1,26 @@
-import UploadForm from "../components/UploadForm";
+import React from "react";
 import AnalysisResult from "../components/AnalysisResult";
-import { mockReservationAnalysis } from "../shared/mockReservationAnalysis";
+import ReservationSourcePanel from "../components/ReservationSourcePanel";
+import {
+  mockReservationAnalysis,
+  mockReservationText,
+} from "../shared/mockReservationAnalysis";
 
 function Home() {
   return (
     <main>
-      <h1>부산 여행 예약 조건 분석 서비스</h1>
+      <section className="app-hero" aria-labelledby="app-title">
+        <p className="eyebrow">부산 여행 예약 조건</p>
+        <h1 id="app-title">예약 전에 확인할 주의사항</h1>
+        <p>
+          취소, 환불, 책임, 이용 조건을 원문 근거와 함께 카드로 확인합니다.
+        </p>
+      </section>
 
-      <p>
-        온라인 예약 페이지의 취소, 환불, 책임, 이용 조건을
-        쉬운 주의사항 카드로 정리합니다.
-      </p>
-
-      <UploadForm />
-
-      <AnalysisResult analysis={mockReservationAnalysis} />
+      <div className="demo-layout">
+        <ReservationSourcePanel sourceText={mockReservationText} />
+        <AnalysisResult analysis={mockReservationAnalysis} />
+      </div>
     </main>
   );
 }

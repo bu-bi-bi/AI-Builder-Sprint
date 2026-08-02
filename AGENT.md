@@ -102,8 +102,35 @@
 - 크롬 확장: Manifest V3, Side Panel API, content script, service worker
 - AI 해설 생성: Upstage Solar LLM
 - 데이터 추출: DOM 기반 텍스트 추출, 사이트별 selector adapter
-- 백엔드/DB: 필요 시 Supabase 또는 간단한 API 서버
+- 백엔드/API 서버: FastAPI
+- 백엔드/DB: 필요 시 Supabase 또는 간단한 저장소
 - 상태 관리: 앱 상태를 우선 사용하고, 핵심 기록은 백엔드 저장을 고려한다.
+
+## 개발 서버 운영 규칙
+
+- 기본 로컬 확인 URL은 FastAPI가 제공하는 `http://127.0.0.1:8000/`이다.
+- Vite dev server를 기본 라이브 서버로 쓰지 않는다. 프론트엔드는 빌드한 뒤 FastAPI가 `frontend/dist`를 정적 파일로 서빙한다.
+- 프론트엔드 변경 사항을 FastAPI 화면에 반영하려면 아래 명령을 실행한다.
+
+```powershell
+cd frontend
+npm.cmd run build
+```
+
+- FastAPI 서버는 프로젝트 가상환경 Python으로 실행한다.
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+- PowerShell에서 `npm`이 실행 정책 문제로 막히면 `npm.cmd`를 사용한다.
+- 서버 실행에 `--reload`, 복잡한 로그 리다이렉트, 긴 `Start-Process` 명령을 기본으로 쓰지 않는다. 작업 흐름이 멈추지 않도록 단순 실행을 우선한다.
+- 백그라운드 실행이 꼭 필요할 때만 짧은 `Start-Process`를 사용하고, 실행 후 `http://127.0.0.1:8000/api/health`로 서버 상태를 확인한다.
+- FastAPI 확인 URL:
+  - 웹 앱: `http://127.0.0.1:8000/`
+  - 헬스 체크: `http://127.0.0.1:8000/api/health`
+  - API 문서: `http://127.0.0.1:8000/docs`
 
 ## 데이터 흐름
 
