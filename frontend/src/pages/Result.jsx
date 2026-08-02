@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import AnalysisChat from "../components/AnalysisChat";
 import AnalysisResult from "../components/AnalysisResult";
+import ModusignPanel from "../components/ModusignPanel";
 import ReservationSourcePanel from "../components/ReservationSourcePanel";
 import {
   mockReservationAnalysis,
@@ -11,6 +12,11 @@ function Result() {
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState({
+    allChecked: false,
+    checkedCount: 0,
+    totalCount: 0,
+  });
   const analysisId = new URLSearchParams(window.location.search).get("analysisId");
 
   useEffect(() => {
@@ -64,6 +70,9 @@ function Result() {
     ? session.sourceMeta?.title || session.siteName || "예약 원문"
     : "부산 광안리 오션뷰 숙소";
   const shouldShowLayout = isReady || status === "mock";
+  const handleConfirmationChange = useCallback((nextConfirmation) => {
+    setConfirmation(nextConfirmation);
+  }, []);
 
   return (
     <main>
@@ -100,11 +109,18 @@ function Result() {
             <AnalysisResult
               analysis={analysis}
               eyebrow={isReady ? "AI 분석 결과" : "샘플 분석 결과"}
+              onConfirmationChange={handleConfirmationChange}
             />
           </div>
 
           {isReady && analysisId && (
-            <AnalysisChat analysisId={analysisId} />
+            <>
+              <ModusignPanel
+                analysisId={analysisId}
+                confirmation={confirmation}
+              />
+              <AnalysisChat analysisId={analysisId} />
+            </>
           )}
         </>
       )}

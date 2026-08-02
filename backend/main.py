@@ -1,5 +1,7 @@
+import base64
 import json
 import os
+import requests
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -27,6 +29,8 @@ MAX_ANALYSIS_SESSIONS = 50
 LLM_ERROR_PREVIEW_CHARS = 4_000
 CHAT_CONTEXT_CHAR_LIMIT = 60_000
 CHAT_HISTORY_LIMIT = 8
+MODUSIGN_API_BASE_URL = os.getenv("MODUSIGN_API_BASE_URL", "https://api.modusign.co.kr")
+MODUSIGN_REQUEST_TIMEOUT = 20
 ANALYSIS_SESSIONS: dict[str, dict[str, Any]] = {}
 
 
@@ -114,6 +118,25 @@ class AnalysisChatResponse(BaseModel):
     followUpQuestions: list[str] = Field(default_factory=list, max_length=3)
     disclaimer: str = Field(..., min_length=1)
 
+
+class ModusignSigningRequest(BaseModel):
+    signerName: str = Field(..., min_length=2, max_length=30)
+    signerContact: str = Field(..., min_length=3, max_length=100)
+    signingMethod: Literal["EMAIL", "KAKAO", "SECURE_LINK"] = "EMAIL"
+    requesterMessage: str | None = Field(default=None, max_length=1000)
+
+
+class ModusignSigningResponse(BaseModel):
+    mode: Literal["live", "demo"]
+    documentId: str
+    title: str
+    status: str
+    signingUrl: str | None = None
+    embeddedUrl: str | None = None
+    message: str
+    createdAt: str
+
+
 app = FastAPI(title="Busan Reservation Guard API")
 
 app.add_middleware(
@@ -137,6 +160,8 @@ async def health_check():
         "chunkCharLimit": CHUNK_CHAR_LIMIT,
         "chunkAnalysisConcurrency": CHUNK_ANALYSIS_CONCURRENCY,
         "maxTotalInputChars": MAX_TOTAL_INPUT_CHARS,
+        "modusignConfigured": is_modusign_configured(),
+        "modusignTemplateConfigured": bool(os.getenv("MODUSIGN_TEMPLATE_ID")),
     }
 
 
@@ -971,6 +996,335 @@ def prune_analysis_sessions() -> None:
         ANALYSIS_SESSIONS.pop(analysis_id, None)
 
 
+def is_modusign_configured() -> bool:
+    return bool(
+        os.getenv("MODUSIGN_TEMPLATE_ID")
+        and (
+            os.getenv("MODUSIGN_BASIC_AUTH")
+            or os.getenv("MODUSIGN_AUTH_HEADER")
+            or os.getenv("MODUSIGN_ACCESS_TOKEN")
+        )
+    )
+
+
+def get_modusign_headers() -> dict[str, str]:
+    auth_header = os.getenv("MODUSIGN_AUTH_HEADER")
+
+    if os.getenv("MODUSIGN_BASIC_AUTH"):
+        basic_auth = os.getenv("MODUSIGN_BASIC_AUTH", "").strip()
+
+        if ":" in basic_auth:
+            basic_auth = base64.b64encode(basic_auth.encode("utf-8")).decode("ascii")
+
+        authorization = f"Basic {basic_auth}"
+    elif auth_header:
+        authorization = auth_header.strip()
+
+        if not authorization.lower().startswith(("bearer ", "basic ")):
+            authorization = f"Bearer {authorization}"
+    elif os.getenv("MODUSIGN_ACCESS_TOKEN"):
+        authorization = f"Bearer {os.getenv('MODUSIGN_ACCESS_TOKEN')}"
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail="모두싸인 인증 환경변수가 필요합니다.",
+        )
+
+    return {
+        "Authorization": authorization,
+        "Content-Type": "application/json",
+    }
+
+
+def compact_checked_cards(analysis: dict[str, Any]) -> str:
+    cards = analysis.get("cards") if isinstance(analysis, dict) else []
+
+    if not isinstance(cards, list):
+        return ""
+
+    lines = []
+
+    for index, card in enumerate(cards[:6], start=1):
+        if not isinstance(card, dict):
+            continue
+
+        title = clamp_text(card.get("title"), 80) or "주의사항"
+        level = card.get("level") or "medium"
+        plain = clamp_text(card.get("plain"), 180) or ""
+        question = clamp_text(card.get("question"), 140) or ""
+        lines.append(f"{index}. [{level}] {title} - {plain} 확인 질문: {question}")
+
+    return "\n".join(lines)[:1000]
+
+
+def build_modusign_prefill_fields(
+    session: dict[str, Any],
+    confirmed_at: str,
+) -> list[dict[str, Any]]:
+    field_map = {
+        "MODUSIGN_FIELD_ANALYSIS_SUMMARY": {
+            "defaultLabel": "분석요약",
+            "value": clamp_text(session.get("analysis", {}).get("summary"), 900),
+        },
+        "MODUSIGN_FIELD_SOURCE_URL": {
+            "defaultLabel": "예약URL",
+            "value": clamp_text(session.get("url") or "알 수 없음", 900),
+        },
+        "MODUSIGN_FIELD_SOURCE_TITLE": {
+            "defaultLabel": "예약출처",
+            "value": clamp_text(
+                (session.get("sourceMeta") or {}).get("title")
+                or session.get("siteName")
+                or "예약 원문",
+                900,
+            ),
+        },
+        "MODUSIGN_FIELD_CHECKED_CARDS": {
+            "defaultLabel": "확인카드",
+            "value": compact_checked_cards(session.get("analysis", {})),
+        },
+        "MODUSIGN_FIELD_CONFIRMED_AT": {
+            "defaultLabel": "확인시각",
+            "value": confirmed_at,
+        },
+        "MODUSIGN_FIELD_NOTICE": {
+            "defaultLabel": "AI고지",
+            "value": (
+                "AI를 통해 생성된 카드들입니다. 위 내용은 AI를 통해 불리할 수 있는 "
+                "내용들을 요약한 것이며 AI가 찾지 못한 정보 또한 존재할 수 있습니다."
+            ),
+        },
+    }
+    requester_inputs = []
+
+    for env_key, field in field_map.items():
+        data_label = os.getenv(env_key) or field["defaultLabel"]
+        value = field["value"]
+
+        if data_label and value:
+            requester_inputs.append(
+                {
+                    "dataLabel": data_label,
+                    "value": str(value)[:1000],
+                }
+            )
+
+    return requester_inputs
+
+
+def build_modusign_requester_inputs(
+    session: dict[str, Any],
+    confirmed_at: str,
+) -> list[dict[str, Any]]:
+    return build_modusign_prefill_fields(session, confirmed_at)
+
+
+def build_modusign_participant_field_mappings(
+    session: dict[str, Any],
+    confirmed_at: str,
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "dataLabel": field["dataLabel"],
+            "excluded": False,
+            "prefilledValue": field["value"],
+        }
+        for field in build_modusign_prefill_fields(session, confirmed_at)
+    ]
+
+
+def build_modusign_document_payload(
+    session: dict[str, Any],
+    payload: ModusignSigningRequest,
+    confirmed_at: str,
+) -> dict[str, Any]:
+    template_id = os.getenv("MODUSIGN_TEMPLATE_ID")
+
+    if not template_id:
+        raise HTTPException(
+            status_code=503,
+            detail="MODUSIGN_TEMPLATE_ID 환경변수가 필요합니다.",
+        )
+
+    title = clamp_text(
+        f"부비비 예약 조건 확인서 - {session.get('siteName') or '예약'}",
+        100,
+    )
+    participant_role = os.getenv("MODUSIGN_PARTICIPANT_ROLE", "여행객")
+    field_mapping_target = os.getenv(
+        "MODUSIGN_FIELD_MAPPING_TARGET",
+        "participant",
+    ).strip().lower()
+    participant_mapping = {
+        "role": participant_role,
+        "name": payload.signerName,
+        "signingMethod": {
+            "type": payload.signingMethod,
+            "value": payload.signerContact,
+        },
+        "signingDuration": int(os.getenv("MODUSIGN_SIGNING_DURATION", "20160")),
+        "requesterMessage": payload.requesterMessage
+        or "부비비에서 확인한 예약 조건 확인서입니다.",
+        "locale": "ko",
+    }
+
+    if field_mapping_target != "requester":
+        participant_mapping["fieldMappings"] = build_modusign_participant_field_mappings(
+            session=session,
+            confirmed_at=confirmed_at,
+        )
+
+    document = {
+        "templateId": template_id,
+        "document": {
+            "title": title,
+            "participantMappings": [participant_mapping],
+            "auditTrail": {"locales": ["ko"]},
+            "metadatas": [
+                {"key": "service", "value": "bubibi"},
+                {"key": "analysisId", "value": session["analysisId"][:80]},
+                {"key": "siteName", "value": (session.get("siteName") or "unknown")[:80]},
+                {"key": "confirmedAt", "value": confirmed_at[:80]},
+            ],
+            "seal": {
+                "integritySeal": {
+                    "enabled": True,
+                    "position": "TOP_RIGHT",
+                }
+            },
+        },
+    }
+
+    if field_mapping_target == "requester":
+        document["document"]["requesterInputMappings"] = build_modusign_requester_inputs(
+            session=session,
+            confirmed_at=confirmed_at,
+        )
+
+    return document
+
+
+def modusign_request(
+    method: str,
+    path: str,
+    *,
+    json_body: dict[str, Any] | None = None,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    base_url = os.getenv("MODUSIGN_API_BASE_URL", MODUSIGN_API_BASE_URL).rstrip("/")
+    url = f"{base_url}{path}"
+
+    try:
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=get_modusign_headers(),
+            json=json_body,
+            params=params,
+            timeout=MODUSIGN_REQUEST_TIMEOUT,
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"모두싸인 API 호출에 실패했습니다: {exc}",
+        ) from exc
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "message": "모두싸인 API가 오류를 반환했습니다.",
+                "requestPath": path,
+                "statusCode": response.status_code,
+                "responsePreview": response.text[:1000],
+            },
+        )
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="모두싸인 API 응답을 JSON으로 읽지 못했습니다.",
+        ) from exc
+
+
+def create_demo_modusign_response(
+    session: dict[str, Any],
+    payload: ModusignSigningRequest,
+    confirmed_at: str,
+) -> ModusignSigningResponse:
+    document_id = f"demo-{session['analysisId'][:12]}"
+
+    return ModusignSigningResponse(
+        mode="demo",
+        documentId=document_id,
+        title=f"부비비 예약 조건 확인서 - {session.get('siteName') or '예약'}",
+        status="READY",
+        signingUrl=None,
+        embeddedUrl=None,
+        createdAt=confirmed_at,
+        message=(
+            f"{payload.signerName}님의 확인서 흐름을 준비했습니다. "
+            "MODUSIGN_TEMPLATE_ID와 인증 환경변수를 설정하면 실제 모두싸인 요청으로 전환됩니다."
+        ),
+    )
+
+
+def create_live_modusign_response(
+    session: dict[str, Any],
+    payload: ModusignSigningRequest,
+    confirmed_at: str,
+) -> ModusignSigningResponse:
+    document_payload = build_modusign_document_payload(
+        session=session,
+        payload=payload,
+        confirmed_at=confirmed_at,
+    )
+    document = modusign_request(
+        "POST",
+        "/documents/request-with-template",
+        json_body=document_payload,
+    )
+    document_id = document.get("id")
+
+    if not document_id:
+        raise HTTPException(
+            status_code=502,
+            detail="모두싸인 문서 ID를 응답에서 찾지 못했습니다.",
+        )
+
+    embedded_url = None
+    participants = document.get("participants")
+
+    if payload.signingMethod == "SECURE_LINK" and isinstance(participants, list) and participants:
+        participant_id = participants[0].get("id")
+
+        if participant_id:
+            redirect_url = os.getenv("MODUSIGN_REDIRECT_URL")
+            participant_view = modusign_request(
+                "GET",
+                f"/documents/{document_id}/participants/{participant_id}/embedded-view",
+                params={"redirectUrl": redirect_url} if redirect_url else None,
+            )
+            embedded_url = participant_view.get("embeddedUrl")
+
+    return ModusignSigningResponse(
+        mode="live",
+        documentId=document_id,
+        title=document.get("title") or document_payload["document"]["title"],
+        status=document.get("status") or "ON_GOING",
+        signingUrl=embedded_url,
+        embeddedUrl=embedded_url,
+        createdAt=confirmed_at,
+        message=(
+            "모두싸인 서명 요청을 만들었습니다."
+            if embedded_url
+            else "모두싸인 서명 요청을 만들었습니다. 이메일/카카오 방식은 모두싸인 알림으로 서명이 진행됩니다."
+        ),
+    )
+
+
 @app.post("/api/analyze-reservation")
 def analyze_reservation(payload: AnalyzeReservationRequest):
     request = payload.model_copy(update={"pageText": payload.pageText.strip()})
@@ -1048,6 +1402,38 @@ def chat_with_analysis_session(analysis_id: str, payload: AnalysisChatRequest):
 
     client = get_upstage_client()
     return request_analysis_chat(client, session, payload)
+
+
+@app.post(
+    "/api/analysis-sessions/{analysis_id}/modusign-signing-request",
+    response_model=ModusignSigningResponse,
+)
+def create_modusign_signing_request(
+    analysis_id: str,
+    payload: ModusignSigningRequest,
+):
+    session = ANALYSIS_SESSIONS.get(analysis_id)
+
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="분석 세션을 찾을 수 없습니다.",
+        )
+
+    confirmed_at = datetime.now(timezone.utc).isoformat()
+
+    if not is_modusign_configured():
+        return create_demo_modusign_response(
+            session=session,
+            payload=payload,
+            confirmed_at=confirmed_at,
+        )
+
+    return create_live_modusign_response(
+        session=session,
+        payload=payload,
+        confirmed_at=confirmed_at,
+    )
 
 
 @app.post("/simpleAIResponse")

@@ -10,6 +10,7 @@ function AnalysisResult({
   analysis,
   eyebrow = "샘플 분석 결과",
   title = "예약 전에 확인할 내용",
+  onConfirmationChange,
 }) {
   const { result, issues } = useMemo(
     () => normalizeAnalysisResult(analysis),
@@ -25,6 +26,14 @@ function AnalysisResult({
     setCheckedCards({});
     setActiveCardIndex(0);
   }, [analysis]);
+
+  useEffect(() => {
+    onConfirmationChange?.({
+      allChecked,
+      checkedCount,
+      totalCount: result.cards.length,
+    });
+  }, [allChecked, checkedCount, onConfirmationChange, result.cards.length]);
 
   const handleCheckChange = (cardId, checked) => {
     setCheckedCards((current) => ({

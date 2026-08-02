@@ -17,7 +17,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -59,7 +60,8 @@ label {
   font-weight: 700;
 }
 
-input {
+input,
+select {
   width: 100%;
   min-height: 42px;
   padding: 10px 12px;
@@ -81,6 +83,16 @@ button {
 
 button:hover {
   background: #0e4f64;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+a {
+  color: #155e75;
+  font-weight: 900;
 }
 
 .app-hero {
@@ -347,6 +359,109 @@ button:hover {
   box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
 }
 
+.modusign-panel {
+  margin-top: 38px;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+.modusign-header {
+  max-width: 760px;
+  margin-bottom: 18px;
+}
+
+.modusign-header p:last-child {
+  color: #526070;
+  line-height: 1.65;
+}
+
+.modusign-status {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #eef6f8;
+  color: #17202a;
+}
+
+.modusign-status span {
+  color: #155e75;
+  font-weight: 900;
+}
+
+.modusign-form {
+  display: grid;
+  grid-template-columns: 1fr 160px 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.modusign-form button {
+  min-width: 180px;
+  padding: 0 16px;
+}
+
+.modusign-error {
+  margin: 16px 0 0;
+  border-radius: 8px;
+  background: #fff1f2;
+  padding: 12px;
+  color: #9f1239;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.modusign-error p {
+  margin-bottom: 8px;
+}
+
+.modusign-error summary {
+  cursor: pointer;
+}
+
+.modusign-error pre {
+  max-height: 220px;
+  margin: 10px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.modusign-result {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  border: 1px solid #c9d2dc;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.modusign-result > div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modusign-result span {
+  color: #526070;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.modusign-result p {
+  margin-bottom: 0;
+  color: #334155;
+  line-height: 1.65;
+}
+
 .analysis-chat-header {
   max-width: 720px;
   margin-bottom: 18px;
@@ -526,6 +641,16 @@ button:hover {
   }
 
   .chat-form > div {
+    grid-template-columns: 1fr;
+  }
+
+  .modusign-status,
+  .modusign-result > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .modusign-form {
     grid-template-columns: 1fr;
   }
 

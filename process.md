@@ -391,6 +391,8 @@ extension/
 
 ### Phase 9. 모두싸인 연동
 
+상태: 완료
+
 - AI 요약/주의사항 정리 기능이 완성된 뒤 시작한다.
 - 이번 정체성에서 모두싸인의 역할을 재정의한다.
 - 가능한 방향:
@@ -403,6 +405,17 @@ extension/
 완료 기준:
 
 - AI 분석 확인 완료 이후 모두싸인 흐름의 위치와 목적이 제품 안에서 어색하지 않다.
+
+수행 기록:
+
+- 모두싸인 MCP를 Codex에 연결하고 제공 API를 확인했다.
+- 핵심 API로 템플릿 기반 서명 요청 `POST /documents/request-with-template`와 서명자 임베디드 링크 `GET /documents/{documentId}/participants/{participantId}/embedded-view`를 선택했다.
+- FastAPI에 `POST /api/analysis-sessions/{analysisId}/modusign-signing-request`를 추가했다.
+- 실제 모두싸인 호출에는 `MODUSIGN_TEMPLATE_ID`와 인증 환경변수가 필요하도록 했다.
+- 설정값이 없으면 데모 모드 응답을 반환해 발표 흐름이 끊기지 않게 했다.
+- 모두싸인 문서에는 분석 요약, 예약 출처, 확인 카드, 확인 시각, AI 한계 고지를 템플릿 필드 매핑으로 넣을 수 있게 했다.
+- 웹 상세 화면에서 모든 카드를 확인한 뒤 이름/연락처를 입력해 모두싸인 확인서 요청을 만들 수 있는 패널을 추가했다.
+- `.env.example`에 모두싸인 템플릿/인증/필드 라벨 환경변수 예시를 추가했다.
 
 ### Phase 10. 데모 마감
 

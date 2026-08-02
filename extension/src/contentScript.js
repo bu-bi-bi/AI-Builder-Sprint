@@ -10,7 +10,7 @@
       name: "Airbnb",
       matches: (location) => /(^|\.)airbnb\./i.test(location.hostname),
       termsUrl: "https://www.airbnb.com/help/article/2908",
-      termsPagePattern: /\/help\/article\/(2877|2857)|terms|legal/i,
+      termsPagePattern: /\/help\/article\/\d+|terms|legal/i,
     },
     {
       id: "trip",
@@ -39,8 +39,42 @@
     chrome.runtime.sendMessage({ type: "OPEN_BUBIBI_SIDE_PANEL" });
   }
 
+  function normalizePathname(pathname) {
+    const normalized = pathname.replace(/\/+$/g, "");
+    return normalized || "/";
+  }
+
+  function matchesConfiguredTermsUrl(site, location) {
+    if (!site.termsUrl) {
+      return false;
+    }
+
+    try {
+      const termsUrl = new URL(site.termsUrl);
+      const sameHost = termsUrl.hostname === location.hostname;
+      const samePath = normalizePathname(termsUrl.pathname)
+        === normalizePathname(location.pathname);
+
+      if (!sameHost || !samePath) {
+        return false;
+      }
+
+      for (const [key, value] of termsUrl.searchParams.entries()) {
+        if (location.searchParams.get(key) !== value) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function isTermsPage(site, location) {
-    return site.termsPagePattern?.test(`${location.pathname}${location.search}`) || false;
+    return matchesConfiguredTermsUrl(site, location)
+      || site.termsPagePattern?.test(`${location.pathname}${location.search}`)
+      || false;
   }
 
   function goToTermsPage(site) {
