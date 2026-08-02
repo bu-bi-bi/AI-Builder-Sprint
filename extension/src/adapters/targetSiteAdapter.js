@@ -25,7 +25,39 @@
   }
 
   function matches(location) {
-    return /(^|\.)airbnb\./i.test(location.hostname);
+    return getSiteMeta(location) !== null;
+  }
+
+  function getSiteMeta(location) {
+    if (/(^|\.)airbnb\./i.test(location.hostname)) {
+      return {
+        adapter: "airbnb",
+        siteName: "Airbnb",
+        pageKind: detectAirbnbPageKind(location.pathname),
+      };
+    }
+
+    if (/(^|\.)trip\.com$/i.test(location.hostname)) {
+      return {
+        adapter: "trip",
+        siteName: "Trip.com",
+        pageKind: detectGenericBookingPageKind(location.pathname),
+      };
+    }
+
+    if (
+      /(^|\.)booking\.naver\.com$/i.test(location.hostname)
+      || /(^|\.)smartplace\.naver\.com$/i.test(location.hostname)
+      || /(^|\.)new\.smartplace\.naver\.com$/i.test(location.hostname)
+    ) {
+      return {
+        adapter: "naver-booking",
+        siteName: "네이버 예약",
+        pageKind: detectGenericBookingPageKind(location.pathname),
+      };
+    }
+
+    return null;
   }
 
   function redactSensitiveText(text) {
@@ -74,6 +106,18 @@
     return "airbnb";
   }
 
+  function detectGenericBookingPageKind(pathname) {
+    if (/terms|policy|policies|agreement|notice|cancel|refund/i.test(pathname)) {
+      return "policy";
+    }
+
+    if (/book|booking|reservation|checkout|order|payment/i.test(pathname)) {
+      return "checkout";
+    }
+
+    return "booking";
+  }
+
   function extractReadableText(documentNode) {
     const bodyClone = documentNode.body?.cloneNode(true);
 
@@ -89,16 +133,20 @@
   function extract(documentNode, location) {
     const pageText = extractReadableText(documentNode);
     const redactedText = redactSensitiveText(pageText);
-    const pageKind = detectAirbnbPageKind(location.pathname);
+    const siteMeta = getSiteMeta(location) || {
+      adapter: "target",
+      siteName: location.hostname,
+      pageKind: "booking",
+    };
 
     return {
-      adapter: "airbnb",
+      adapter: siteMeta.adapter,
       url: location.href,
-      siteName: "Airbnb",
+      siteName: siteMeta.siteName,
       title: normalizeText(documentNode.title),
       pageText: redactedText,
       textLength: redactedText.length,
-      pageKind,
+      pageKind: siteMeta.pageKind,
       requiresChunking: redactedText.length > DIRECT_ANALYSIS_CHAR_LIMIT,
       capturedAt: new Date().toISOString(),
     };

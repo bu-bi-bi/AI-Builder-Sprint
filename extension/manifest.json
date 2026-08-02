@@ -9,6 +9,25 @@
   "background": {
     "service_worker": "src/background.js"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.airbnb.com/*",
+        "*://*.airbnb.co.kr/*",
+        "*://*.trip.com/*",
+        "*://booking.naver.com/*",
+        "*://*.booking.naver.com/*",
+        "*://smartplace.naver.com/*",
+        "*://new.smartplace.naver.com/*"
+      ],
+      "js": [
+        "src/adapters/genericAdapter.js",
+        "src/adapters/targetSiteAdapter.js",
+        "src/contentScript.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
   "side_panel": {
     "default_path": "src/sidepanel/index.html"
   },

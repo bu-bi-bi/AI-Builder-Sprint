@@ -3,6 +3,7 @@ const state = {
   analysis: null,
   activeCardIndex: 0,
   checkedCardIds: new Set(),
+  analysisSessionId: null,
   dragStartX: null,
   dragDeltaX: 0,
   loadingTimer: null,
@@ -13,6 +14,7 @@ const state = {
 
 const SOURCE_PREVIEW_LIMIT = 50000;
 const ANALYSIS_API_URL = "http://127.0.0.1:8000/api/analyze-reservation";
+const ANALYSIS_SESSION_API_URL = "http://127.0.0.1:8000/api/analysis-sessions";
 const WEB_DETAIL_URL = "http://127.0.0.1:8000/result";
 const ANALYSIS_TIMEOUT_MS = 300000;
 const SHORT_ANALYSIS_STEPS = [
@@ -50,6 +52,8 @@ const elements = {
   loadingStep: document.getElementById("loadingStep"),
   failureTitle: document.getElementById("failureTitle"),
   failureDetail: document.getElementById("failureDetail"),
+  llmFailureDetails: document.getElementById("llmFailureDetails"),
+  llmFailureResponse: document.getElementById("llmFailureResponse"),
   analyzePageButton: document.getElementById("analyzePageButton"),
   restartAnalysisButton: document.getElementById("restartAnalysisButton"),
   retryAnalysisButton: document.getElementById("retryAnalysisButton"),
@@ -89,7 +93,7 @@ function showLoadingView(title, step) {
   elements.loadingStep.textContent = step;
 }
 
-function showFailureView(title, detail) {
+function showFailureView(title, detail, llmResponse = "") {
   stopLoadingCycle();
   setMessage("");
   elements.idlePanel.hidden = true;
@@ -100,6 +104,9 @@ function showFailureView(title, detail) {
   elements.aiDisclaimer.hidden = true;
   elements.failureTitle.textContent = title;
   elements.failureDetail.textContent = detail;
+  elements.llmFailureResponse.textContent = llmResponse;
+  elements.llmFailureDetails.hidden = !llmResponse;
+  elements.llmFailureDetails.open = false;
 }
 
 function showResultView() {
@@ -140,6 +147,38 @@ function setMessage(message, tone = "info") {
   elements.messageBox.textContent = message;
   elements.messageBox.dataset.tone = tone;
   elements.messageBox.hidden = !message;
+}
+
+function getApiErrorInfo(payload, fallbackMessage) {
+  const detail = payload?.detail;
+
+  if (typeof detail === "string") {
+    return {
+      message: detail,
+      llmResponse: "",
+    };
+  }
+
+  if (!detail || typeof detail !== "object") {
+    return {
+      message: fallbackMessage,
+      llmResponse: "",
+    };
+  }
+
+  const message = detail.message
+    || detail.repairError
+    || detail.firstError
+    || fallbackMessage;
+  const llmResponse = detail.llmResponsePreview
+    || detail.repairLlmResponsePreview
+    || detail.firstLlmResponsePreview
+    || "";
+
+  return {
+    message: typeof message === "string" ? message : fallbackMessage,
+    llmResponse: typeof llmResponse === "string" ? llmResponse : "",
+  };
 }
 
 function formatNumber(value) {
@@ -339,7 +378,7 @@ function renderAnalysis(rawAnalysis) {
   state.checkedCardIds = new Set();
   elements.analysisPanel.hidden = false;
   elements.analysisSummary.textContent = analysis.summary;
-  elements.openWebButton.disabled = false;
+  elements.openWebButton.disabled = !state.analysisSessionId;
   renderCardStack(analysis.cards);
 
   updateCheckedCount();
@@ -366,6 +405,7 @@ function renderExtraction(extraction) {
 function resetExtractionState() {
   state.extraction = null;
   state.analysis = null;
+  state.analysisSessionId = null;
   state.activeCardIndex = 0;
   state.checkedCardIds = new Set();
   elements.copyButton.disabled = true;
@@ -374,6 +414,35 @@ function resetExtractionState() {
   elements.sourcePanel.open = false;
   clearElement(elements.cardStack);
   updateCardControls();
+}
+
+async function saveAnalysisSession(analysis) {
+  const response = await fetch(ANALYSIS_SESSION_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      analysis,
+      pageText: state.extraction.pageText,
+      url: state.extraction.url,
+      siteName: state.extraction.siteName,
+      sourceMeta: {
+        url: state.extraction.url,
+        siteName: state.extraction.siteName,
+        title: state.extraction.title,
+      },
+    }),
+  });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const { message } = getApiErrorInfo(payload, "분석 결과 저장에 실패했습니다.");
+      throw new Error(message);
+    }
+
+  return payload.analysisId;
 }
 
 function restartAnalysisFlow() {
@@ -471,11 +540,13 @@ async function analyzeCurrentExtraction() {
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const detail = payload?.detail;
-      const message = typeof detail === "string"
-        ? detail
-        : detail?.message || "분석 API 호출에 실패했습니다.";
-      throw new Error(message);
+      const { message, llmResponse } = getApiErrorInfo(
+        payload,
+        "분석 API 호출에 실패했습니다.",
+      );
+      const apiError = new Error(message);
+      apiError.llmResponse = llmResponse;
+      throw apiError;
     }
 
     if (runId !== state.runId) {
@@ -483,7 +554,8 @@ async function analyzeCurrentExtraction() {
     }
 
     stopLoadingCycle();
-    setLoadingStep("카드 정리 중", "중복 내용을 합치고 중요한 항목부터 정리하고 있습니다.");
+    setLoadingStep("카드 정리 중", "분석 결과를 웹에서도 볼 수 있게 저장하고 있습니다.");
+    state.analysisSessionId = await saveAnalysisSession(payload);
     renderAnalysis(payload);
     setMessage("");
   } catch (error) {
@@ -494,7 +566,7 @@ async function analyzeCurrentExtraction() {
     const message = error?.name === "AbortError"
       ? "분석 시간이 너무 오래 걸려 중단했습니다."
       : error?.message || "분석에 실패했습니다.";
-    showFailureView("분석하지 못했습니다", message);
+    showFailureView("분석하지 못했습니다", message, error?.llmResponse || "");
   } finally {
     state.activeController = null;
     stopLoadingCycle();
@@ -545,7 +617,13 @@ async function copyExtractedText(event) {
 }
 
 function openWebDetail() {
-  chrome.tabs.create({ url: WEB_DETAIL_URL });
+  if (!state.analysisSessionId) {
+    setMessage("웹에서 볼 분석 결과가 아직 저장되지 않았습니다.", "error");
+    return;
+  }
+
+  const url = `${WEB_DETAIL_URL}?analysisId=${encodeURIComponent(state.analysisSessionId)}`;
+  chrome.tabs.create({ url });
 }
 
 function getClientX(event) {

@@ -46,6 +46,26 @@ async function requestPageExtraction(tab) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "OPEN_BUBIBI_SIDE_PANEL") {
+    const tabId = sender.tab?.id;
+
+    if (!tabId) {
+      sendResponse({ ok: false, error: "현재 탭을 찾지 못했습니다." });
+      return false;
+    }
+
+    chrome.sidePanel.open({ tabId })
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => {
+        sendResponse({
+          ok: false,
+          error: error?.message || "Side Panel을 열지 못했습니다.",
+        });
+      });
+
+    return true;
+  }
+
   if (message?.type !== "GET_CURRENT_TAB_TEXT") {
     return false;
   }

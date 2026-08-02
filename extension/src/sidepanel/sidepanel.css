@@ -185,6 +185,39 @@ h2 {
   text-align: center;
 }
 
+.llm-failure-details {
+  width: min(100%, 290px);
+  border: 1px solid #d8e2dc;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #4f5d5f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.llm-failure-details summary {
+  min-height: 38px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.llm-failure-response {
+  max-height: 190px;
+  margin: 0;
+  overflow: auto;
+  border-top: 1px solid #edf2f4;
+  background: #fbfcfc;
+  padding: 12px;
+  color: #233136;
+  font-family:
+    "Noto Sans KR", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
 .loading-help {
   max-width: 285px;
   margin: 4px 0 0;

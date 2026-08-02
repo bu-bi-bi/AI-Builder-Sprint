@@ -37,6 +37,10 @@
         <p id="failureDetail" class="failure-detail">
           현재 페이지에서 예약 조건 원문을 가져오지 못했습니다.
         </p>
+        <details id="llmFailureDetails" class="llm-failure-details" hidden>
+          <summary>LLM 응답 보기</summary>
+          <pre id="llmFailureResponse" class="llm-failure-response"></pre>
+        </details>
         <button id="retryAnalysisButton" class="secondary-button" type="button">
           다시 시도
         </button>

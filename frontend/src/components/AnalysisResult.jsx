@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { EffectCards } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -6,7 +6,11 @@ import "swiper/css/effect-cards";
 import { normalizeAnalysisResult } from "../shared/analysisSchema";
 import ContractCard from "./ContractCard";
 
-function AnalysisResult({ analysis }) {
+function AnalysisResult({
+  analysis,
+  eyebrow = "샘플 분석 결과",
+  title = "예약 전에 확인할 내용",
+}) {
   const { result, issues } = useMemo(
     () => normalizeAnalysisResult(analysis),
     [analysis],
@@ -16,6 +20,11 @@ function AnalysisResult({ analysis }) {
 
   const checkedCount = result.cards.filter((card) => checkedCards[card.id]).length;
   const allChecked = result.cards.length > 0 && checkedCount === result.cards.length;
+
+  useEffect(() => {
+    setCheckedCards({});
+    setActiveCardIndex(0);
+  }, [analysis]);
 
   const handleCheckChange = (cardId, checked) => {
     setCheckedCards((current) => ({
@@ -27,8 +36,8 @@ function AnalysisResult({ analysis }) {
   return (
     <section className="analysis-result" aria-labelledby="analysis-title">
       <div className="analysis-summary">
-        <p className="eyebrow">샘플 분석 결과</p>
-        <h2 id="analysis-title">예약 전에 확인할 내용</h2>
+        <p className="eyebrow">{eyebrow}</p>
+        <h2 id="analysis-title">{title}</h2>
         <p>{result.summary}</p>
       </div>
 
